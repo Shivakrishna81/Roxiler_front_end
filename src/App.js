@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
-
+import Table from './components/table'
+import Statitics from './components/Statitics'
+import Piechart from './components/Piechart'
 import { Bar } from "react-chartjs-2"
 import axios from "axios"
 import './App.css'
@@ -13,23 +15,21 @@ Chart.register(
 
 const App = () => {
 
-  const [month, setMonth] = useState(3)
+  const [month, setMonth] = useState(2)
   const [textMonth, setTextMonth] = useState("March")
   const [input, setInput] = useState("")
   const [total, setTotal] = useState(0)
   const [sold, setSold] = useState(0)
   const [unsold, setUnsold] = useState(0)
   const [barGraph, setBarGraph] = useState([])
-
-
+  const [piechartdata, setPiechartdata] = useState([])
   const [transactions, setTransactions] = useState([])
-
   const sortedTransactions = transactions.filter((each) => {
-    return each.title.toLowerCase().includes(input.toLowerCase())
+    return each.title.toLowerCase().includes(input.toLowerCase()) || each.description.includes(input) || each.price.toString().includes(input)
   })
 
   const [currentPage, setCurrentPage] = useState(1)
-  const recordsPerPage = 3
+  const recordsPerPage = 10
   const lastIndex = currentPage * recordsPerPage
   const firstIndex = lastIndex - recordsPerPage
   const records = sortedTransactions.slice(firstIndex, lastIndex)
@@ -52,7 +52,6 @@ const App = () => {
 
 
   useEffect(() => {
-
     axios.get(`http://localhost:5000/list-transactions?month=${month}`)
       .then((res) => {
         console.log(res.data)
@@ -84,6 +83,18 @@ const App = () => {
         const values = Object.keys(object).map(key => object[key])
         setBarGraph(values)
         console.log(values)
+      })
+  }, [month])
+
+
+  useEffect(() => {
+    axios.get(`http://localhost:5000/pie-chart-api?month=${month}`)
+      .then((res) => {
+        console.log("pie-chartttt", res.data)
+        setPiechartdata(res.data)
+      })
+      .catch((err) => {
+        console.log(err)
       })
   }, [month])
 
@@ -127,7 +138,7 @@ const App = () => {
         <select className='select' onClick={(e) => setMonth(e.target.value)}>
           <option value={0}>Jan</option>
           <option value={1}>Feb</option>
-          <option value={2}>Mar</option>
+          <option value={2} selected>Mar</option>
           <option value={3}>April</option>
           <option value={4}>May</option>
           <option value={5}>Jun</option>
@@ -140,72 +151,48 @@ const App = () => {
         </select>
       </div>
 
-      <div className='container2'>
-        <table border="1" >
-          <tr>
-            <th>Id</th>
-            <th>Title</th>
-            <th>Description</th>
-            <th>Price</th>
-            <th>Category</th>
-            <th>Sold</th>
-            <th>Image</th>
-          </tr>
-          {
-            sortedTransactions?.map((each) => [
-              <tr>
-                <td>{each.id}</td>
-                <td>{each.title}</td>
-                <td>{each.description}</td>
-                <td>{each.price}</td>
-                <td>{each.category}</td>
-                <td>{each.sold}</td>
-                <td><img src={each.image} className='imgs' alt="img" /></td>
-              </tr>
-            ])
-          }
+      <Table sortedTransactions={records} />
 
-        </table>
-      </div>
-
-      <nav>
-        <ul className='pagination'>
-          <li className='page-item'>
-            <a href='#' className='page-link' onClick={prePage}>Prev</a>
-          </li>
-          {
-            numbers.map((n, i) => (
-              <li className={`page-item ${currentPage === n ? "active" : ""}`} key={i}>
-                <a href='#' className='page-link' onClick={() => changePage(n)}>
-                  {n}
-                </a>
-              </li>
-            ))
-          }
-          <li className='page-item'>
-            <a href='#' className='page-link' onClick={nextPage}>Next</a>
-          </li>
-        </ul>
-      </nav>
-
-      <div className='statitics'>
-        <h2>Statistics {parseInt(month) + 1} month</h2>
-        <div className='subStatistics'>
-          <div>
-            <p>Total Sale</p>
-            <p>Total sold items </p>
-            <p>Total not sold items</p>
-          </div>
-          <div>
-            <p>{total}</p>
-            <p>{sold}</p>
-            <p>{unsold}</p>
-          </div>
+      <div className='actions'>
+        <div>
+          <p className='p'>Page No: {currentPage}</p>
         </div>
+
+        <nav>
+          <ul className='pagination'>
+            <li className='page-item'>
+              <a href='#' className='page-link' onClick={prePage}>Prev</a>
+            </li>
+            {
+              numbers.map((n, i) => (
+                <li className={`page-item ${currentPage === n ? "active" : ""}`} key={i}>
+                  <a href='#' className='page-link' onClick={() => changePage(n)}>
+                    {n}
+                  </a>
+                </li>
+              ))
+            }
+            <li className='page-item'>
+              <a href='#' className='page-link' onClick={nextPage}>Next</a>
+            </li>
+          </ul>
+        </nav>
+
+        <div>
+          <p className='p2'>Per Page: {10}</p>
+        </div>
+
       </div>
+
+      <Statitics sold={sold} unsold={unsold} total={total} month={month} />
+
       <div className='barchart'>
         <h1>Bar Chart Stats of {parseInt(month) + 1} month</h1>
         <Bar data={data} />
+      </div>
+
+      <div className='pie'>
+        <Piechart data={piechartdata} month={month} />
       </div>
     </div>
   )
